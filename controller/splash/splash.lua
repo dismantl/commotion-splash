@@ -18,5 +18,3 @@ function config_splash()
   
   luci.template.render("commotion/splash", {ap=ap_iface, secAp=secAp_iface, plug=plug_iface, plug1=plug1_iface, plug2=plug2_iface})
 end
-  
-  
