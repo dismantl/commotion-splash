@@ -1,4 +1,4 @@
-module("luci.controller.commotion.splash", package.seeall)
+module("luci.controller.commotion-splash.splash", package.seeall)
 
 require "luci.sys"
 require "commotion_helpers"

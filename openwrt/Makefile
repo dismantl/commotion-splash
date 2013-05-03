@@ -23,7 +23,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
   SECTION:=commotion
   CATEGORY:=Commotion
-  DEPENDS:=
+  DEPENDS:=+nodogsplash
   TITLE:=Commotion Captive Portal
   URL:=https://commotionwireless.net
 endef

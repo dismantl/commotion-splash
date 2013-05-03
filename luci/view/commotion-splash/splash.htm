@@ -1,10 +1,8 @@
 <%+header%>
-    
-<ul class="tabs">
-  <li class="tabmenu-item-splashtext">
-    <a href="<%=controller%>/admin/services/splash/splashtext/">Splashtext</a>
-  </li>
-</ul>
+
+<style type="text/css">
+table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-section-table select { width: 97%; }
+</style>
 
 <form method="post" action="<%=controller%>/admin/services/splash/submit">
   <div><script type="text/javascript" src="/luci-static/resources/cbi.js"></script></div>
@@ -48,17 +46,13 @@
       <tr class="cbi-section-table-row">
         <td class="cbi-value-field">
           <div id="cbi-commotion-splash-zones">
-	    <select class="cbi-input-select" id="cbid.commotion-splash.zone" name="cbid.commotion-splash.zone" size="1">
-	      <%- for zone in splash.zones do
-	        if splash.zone_selected == zone then -%>
-		  <option id="cbi-commotion-splash-zone-<%=zone%>" value="<%=zone%>" selected="selected"><%=zone%></option>
-		<% else %>
-		  <option id="cbi-commotion-splash-zone-<%=zone%>" value="<%=zone%>"><%=zone%></option>
-	      <% end %>
-	    </select>
-	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.zone', '/luci-static/resources', '', true);</script>
+            <input type="text" class="cbi-input-text" id="cbid.commotion-splash.zone" name="cbid.commotion-splash.zone" <% if splash.zone_selected then %>value="<%=splash.zone_selected%>" <% end %>/>
+	    <script type="text/javascript">cbi_combobox_init('cbid.commotion-splash.zone',{ 
+	      <% first = true; for i, zone in pairs(splash.zones) do %>
+	        <%- if first then first = false else %>,<% end -%>'<%=zone%>':'<%=zone%>'
+	      <%- end %> }, '', '');
+	    </script>
 	  </div>
-	  <div id="cbip-commotion-splash-zone"></div>
 	</td>
       </tr>
     </table>
@@ -82,7 +76,6 @@
 	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.mac" id="cbid.commotion-splash.mac" value="" />
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.mac', '/luci-static/resources', '', true);</script>
 	  </div>
-	  <div id="cbip-commotion-splash-mac"></div>
         </td>
       </tr>
     </table>
@@ -106,7 +99,6 @@
 	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.macblock" id="cbid.commotion-splash.macblock" value="" />
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.macblock', '/luci-static/resources', '', true);</script>
 	  </div>
-	  <div id="cbip-commotion-splash-macblock"></div>
         </td>
       </tr>
     </table>
@@ -130,7 +122,6 @@
             <input type="text" class="cbi-input-text" name="cbid.commotion-splash.ipaddr" id="cbid.commotion-splash.ipaddr" value="" />
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.ipaddr', '/luci-static/resources', '', true);</script>
           </div>
-          <div id="cbip-commotion-splash-ipaddr"></div>
         </td>
       </tr>
     </table>
