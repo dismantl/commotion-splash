@@ -15,7 +15,7 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
 	<div class="cbi-value" id="cbi-commotion-splash-general-leasetime">
 	  <label class="cbi-value-title" for="cbid.commotion-splash.general.leasetime">Clearance time</label>
 	  <div class="cbi-value-field">
-	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.general.leasetime" id="cbid.commotion-splash.general.leasetime" value="<%=leasetime%>" /><br />
+	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.general.leasetime" id="cbid.commotion-splash.general.leasetime" value="<%=splash.leasetime%>" /><br />
 	    <div class="cbi-value-description">
 	      <span class="cbi-value-helpicon"><img src="/luci-static/resources/cbi/help.gif" alt="help" /></span>
 		Clients that have accepted the captive portal are allowed to use the network for that many hours.
@@ -48,9 +48,10 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
           <div id="cbi-commotion-splash-zones">
             <input type="text" class="cbi-input-text" id="cbid.commotion-splash.zone" name="cbid.commotion-splash.zone" <% if splash.zone_selected then %>value="<%=splash.zone_selected%>" <% end %>/>
 	    <script type="text/javascript">cbi_combobox_init('cbid.commotion-splash.zone',{ 
-	      <% first = true; for i, zone in pairs(splash.zones) do %>
+	      <% first = true; current = ''; for zone, selected in pairs(splash.zones) do %>
 	        <%- if first then first = false else %>,<% end -%>'<%=zone%>':'<%=zone%>'
-	      <%- end %> }, '', '');
+	        <%- if selected == "selected" then current = zone end -%>
+	      <%- end %> }, <%=current%>, '');
 	    </script>
 	  </div>
 	</td>
@@ -73,7 +74,12 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
       <tr class="cbi-section-table-row">
         <td class="cbi-value-field">
           <div id="cbi-commotion-splash-mac">
-	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.mac" id="cbid.commotion-splash.mac" value="" />
+            <% for _, whitelist in pairs(splash.whitelist) do %>
+	      <input type="text" class="cbi-input-text" name="cbid.commotion-splash.mac" id="cbid.commotion-splash.mac" value="<%=whitelist%>" /><br />
+	    <% end %>
+	    <% if not next(splash.whitelist) then %>
+	      <input type="text" class="cbi-input-text" name="cbid.commotion-splash.mac" id="cbid.commotion-splash.mac" value="" /><br />
+	    <% end %>
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.mac', '/luci-static/resources', '', true);</script>
 	  </div>
         </td>
@@ -96,7 +102,12 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
       <tr class="cbi-section-table-row">
 	<td class="cbi-value-field">
           <div id="cbi-commotion-splash-macblock">
-	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.macblock" id="cbid.commotion-splash.macblock" value="" />
+            <% for _, blacklist in pairs(splash.blacklist) do %>
+	      <input type="text" class="cbi-input-text" name="cbid.commotion-splash.macblock" id="cbid.commotion-splash.macblock" value="<%=blacklist%>" />
+	    <% end %>
+	    <% if not next(splash.blacklist) then %>
+	      <input type="text" class="cbi-input-text" name="cbid.commotion-splash.macblock" id="cbid.commotion-splash.macblock" value="" />
+	    <% end %>
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.macblock', '/luci-static/resources', '', true);</script>
 	  </div>
         </td>
@@ -119,7 +130,12 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
       <tr class="cbi-section-table-row">
         <td class="cbi-value-field">
           <div id="cbi-commotion-splash-ipaddr">
-            <input type="text" class="cbi-input-text" name="cbid.commotion-splash.ipaddr" id="cbid.commotion-splash.ipaddr" value="" />
+            <% for _, subnet in pairs(splash.subnet) do %>
+              <input type="text" class="cbi-input-text" name="cbid.commotion-splash.ipaddr" id="cbid.commotion-splash.ipaddr" value="<%=subnet%>" />
+	    <% end %>
+	    <% if not next(splash.subnet) then %>
+              <input type="text" class="cbi-input-text" name="cbid.commotion-splash.ipaddr" id="cbid.commotion-splash.ipaddr" value="" />
+            <% end %>
 	    <script type="text/javascript">cbi_dynlist_init('cbid.commotion-splash.ipaddr', '/luci-static/resources', '', true);</script>
           </div>
         </td>
