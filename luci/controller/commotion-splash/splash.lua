@@ -13,22 +13,45 @@ function index()
 end
 
 function config_splash(error_info, bad_settings)
-  local splash = {zones={}, selected_zones={}, whitelist={}, blacklist={}, ipaddrs={}}
-  local current_ifaces = luci.sys.exec("grep 'GatewayInterface' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
-  local list = list_ifaces()
+  local splash
   
-  -- get current zone(s) set in nodogsplash --> splash.zone_selected
-  for zone, iface in pairs(list.zone_to_iface) do
-    splash.zones[zone] = current_ifaces:match(iface) and "selected" or ""
-    if current_ifaces:match(iface) then
-      table.insert(splash.selected_zones, zone)
+  -- get settings
+  if bad_settings then
+    splash = bad_settings
+  else
+    local current_ifaces = luci.sys.exec("grep 'GatewayInterface' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    local list = list_ifaces()
+    splash = {zones={}, selected_zones={}, whitelist={}, blacklist={}, ipaddrs={}}
+    
+    -- get current zone(s) set in nodogsplash --> splash.zone_selected
+    for zone, iface in pairs(list.zone_to_iface) do
+      table.insert(splash.zones,zone)
+      if current_ifaces:match(iface) then
+        table.insert(splash.selected_zones, zone)
+      end
     end
+  
+    -- get splash.leasetime
+    splash.leasetime = luci.sys.exec("grep -o -E 'ClientIdleTimeout [[:digit:]]+' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+  
+    -- get whitelist, blacklist, ipaddrs
+    local whitelist_str = luci.sys.exec("grep -o -E 'TrustedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    for mac in whitelist_str:gmatch("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") do
+      table.insert(splash.whitelist,mac)
+    end
+    
+    local blacklist_str = luci.sys.exec("grep -o -E 'BlockedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    for mac in blacklist_str:gmatch("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") do
+      table.insert(splash.blacklist,mac)
+    end
+    
+    local ipaddrs_str = luci.sys.exec("grep -o -E 'FirewallRule allow from .* #FirewallRule preauthenticated-users' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 4")
+    for ipaddr in ipaddrs_str:gmatch("[^%s]+") do
+      log(ipaddr)
+      table.insert(splash.ipaddrs,ipaddr)
+    end
+    
   end
-  
-  -- get splash.leasetime
-  splash.leasetime = luci.sys.exec("grep 'ClientIdleTimeout' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
-  
-  -- get whitelist, blacklist, ipaddrs
   
   luci.template.render("commotion-splash/splash", {splash=splash, err=error_info})
 end
@@ -41,11 +64,14 @@ function config_submit()
   }
   local range
 
-  for opt in {'zones','whitelist','blacklist','ipaddrs'} do
-    if type(settings[opt]) == "string" then
+  for _, opt in pairs({'selected_zones','whitelist','blacklist','ipaddrs'}) do
+    if type(luci.http.formvalue("cbid.commotion-splash." .. opt)) == "string" then
       settings[opt] = {luci.http.formvalue("cbid.commotion-splash." .. opt)}
-    else
+    elseif type(luci.http.formvalue("cbid.commotion-splash." .. opt)) == "table" then
       settings[opt] = luci.http.formvalue("cbid.commotion-splash." .. opt)
+    else
+      DIE("splash: invalid parameters")
+      return
     end
   end
   
@@ -54,26 +80,26 @@ function config_submit()
     error_info.leasetime = "Clearance time must be an integer greater than zero"
   end
   
-  for zone in settings.zones do
-    if zone and zone ~= "" and not list.zone_to_iface[zone] then
-      DIE("Invalid submission...zone " .. zone .. " doesn't exist")
+  for _, selected_zone in pairs(settings.selected_zones) do
+    if selected_zone and selected_zone ~= "" and not list.zone_to_iface[selected_zone] then
+      DIE("Invalid submission...zone " .. selected_zone .. " doesn't exist")
       return
     end
   end
   
-  for mac in settings.whitelist do
+  for _, mac in pairs(settings.whitelist) do
     if mac and mac ~= "" and not is_macaddr(mac) then
       error_info.whitelist = "Whitelist entries must be a valid MAC address"
     end
   end
   
-  for mac in settings.blacklist do
+  for _, mac in pairs(settings.blacklist) do
     if mac and mac ~= "" and not is_macaddr(mac) then
       error_info.blacklist = "Blacklist entries must be a valid MAC address"
     end
   end
   
-  for ipaddr in settings.ipaddrs do
+  for _, ipaddr in pairs(settings.ipaddrs) do
     if ipaddr and ipaddr ~= "" and is_ip4addr_cidr(ipaddr) then
       range = true
     elseif ipaddr and ipaddr ~= "" and not is_ip4addr(ipaddr) then
@@ -83,17 +109,21 @@ function config_submit()
   
   --finish
   if next(error_info) then
+    local list = list_ifaces()
+    settings.zones={}
+    for zone, iface in pairs(list.zone_to_iface) do
+      table.insert(settings.zones,zone)
+    end
     error_info.notice = "Invalid entries. Please review the fields below."
     config_splash(error_info, settings)
     return
   else
     --set new values
-    --luci.sys.exec("sed -i -e s/\"^GatewayInterface [[:alnum:]]*\"/\"GatewayInterface " .. list.zone_to_iface[new_zone] .. '"/ /etc/nodogsplash/nodogsplash.conf')
     local options = {
       gw_ifaces = '',
       ipaddrs = '',
       redirect = settings.redirect and ("RedirectURL " .. settings.redirect) or "",
-      leasetime = settings.leastime,
+      leasetime = settings.leasetime,
       blacklist = '',
       whitelist = ''
     }
@@ -123,27 +153,36 @@ ClientIdleTimeout ${leasetime}
 ClientForceTimeout ${leasetime}
 
 BlockedMACList ${blacklist}
-TrustedMACList ${whitelist}]]
+TrustedMACList ${whitelist}
+]]
 
     local gw_iface = "GatewayInterface ${iface}"
-    local ipaddr = "FirewallRule allow from ${ip_cidr}"
+    local ipaddr = "FirewallRule allow from ${ip_cidr} #FirewallRule preauthenticated-users"
     
-    for zone in settings.zones do
-      options.gw_ifaces = options.gw_ifaces .. printf(gw_iface, {iface=list.zone_to_iface[zone]}) .. "\n"
+    for _, selected_zone in pairs(settings.selected_zones) do
+      if selected_zone and selected_zone ~= '' then
+        options.gw_ifaces = options.gw_ifaces .. printf(gw_iface, {iface=list.zone_to_iface[selected_zone]}) .. "\n"
+      end
     end
     
-    for ip_cidr in settings.ipaddrs do
-      options.ipaddrs = options.ipaddrs .. printf(ipaddr, {ip_cidr=ip_cidr}) .. "\n"
+    for _, ip_cidr in pairs(settings.ipaddrs) do
+      if ip_cidr and ip_cidr ~= '' then
+	options.ipaddrs = options.ipaddrs .. printf(ipaddr, {ip_cidr=ip_cidr}) .. "\n"
+      end
     end
     
-    first = true; for mac in settings.whitelist do
-      if first then first = false else options.whitelist = options.whitelist .. ',' end
-      options.whitelist = options.whitelist .. mac
+    first = true; for _, mac in pairs(settings.whitelist) do
+      if mac and mac ~= '' then
+        if first then first = false else options.whitelist = options.whitelist .. ',' end
+        options.whitelist = options.whitelist .. mac
+      end
     end
     
-    first = true; for mac in settings.blacklist do
-      if first then first = false else options.blacklist = options.blacklist .. ',' end
-      options.blacklist = options.blacklist .. mac
+    first = true; for _, mac in pairs(settings.blacklist) do
+      if mac and mac ~= '' then
+        if first then first = false else options.blacklist = options.blacklist .. ',' end
+        options.blacklist = options.blacklist .. mac
+      end
     end
     
     local new_conf = printf(new_conf_tmpl, options)
@@ -153,18 +192,4 @@ TrustedMACList ${whitelist}]]
     
     luci.http.redirect(".")
   end
-end
-
-function list_ifaces()
-  local uci = luci.model.uci.cursor()
-  local r = {zone_to_iface = {}, iface_to_zone = {}}
-  uci:foreach("network", "interface", 
-    function(zone)
-      if zone['.name'] == 'loopback' then return end
-      local iface = luci.sys.exec("ubus call network.interface." .. zone['.name'] .. " status |grep '\"device\"' | cut -d '\"' -f 4"):gsub("%s$","")
-      r.zone_to_iface[zone['.name']]=iface
-      r.iface_to_zone[iface]=zone['.name']
-    end
-  )
-  return r
 end

@@ -17,7 +17,11 @@ local fs = require "nixio.fs"
 local splashtextfile = "/etc/nodogsplash/htdocs/splash.html"
 
 f = SimpleForm("splashtext", translate("Edit Splash text"),
-        translate("You can enter your own text that is displayed to clients here.<br />"))
+        translate("You can enter your own text that is displayed to clients here.<br /><br />" ..
+	"It is possible to use the following markers:<br />" ..
+	"$gatewayname: The value of GatewayName as set in nodogsplash.conf.<br />" ..
+	"$authtarget: A URL which encodes a unique token and the URL of the user's original web request.<br />" ..
+	"$imagesdir: The directory in nodogsplash's web hierarchy where images to be displayed in the splash page must be located.<br />"))
 
 t = f:field(TextValue, "text")
 t.rmempty = true
