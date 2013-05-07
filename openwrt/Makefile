@@ -52,7 +52,7 @@ endef
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] || {
-        ( . /etc/uci-defaults/$(PKG_NAME) && rm -f /etc/uci-defaults/$(PKG_NAME)
+        ( . /etc/uci-defaults/$(PKG_NAME) ) && rm -f /etc/uci-defaults/$(PKG_NAME)
 }
 endef
 
