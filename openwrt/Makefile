@@ -41,10 +41,19 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
 	$(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
-	$(INSTALL_DIR) $(1)/etc/nodogsplash/htdocs
-	$(CP) $(PKG_BUILD_DIR)/htdocs/nodogsplash/splash.html $(1)/etc/nodogsplash/htdocs/
+	$(INSTALL_DIR) $(1)/usr/share/commotion/files
+	$(CP) $(PKG_BUILD_DIR)/files/usr/share/commotion/files/splash.html $(1)/usr/share/commotion/files/
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/etc/uci-defaults/commotion-splash $(1)/etc/uci-defaults/
 	$(INSTALL_DIR) $(1)/www/luci-static/commotion
 	$(CP) $(PKG_BUILD_DIR)/htdocs/commotion/* $(1)/www/luci-static/commotion/
+endef
+
+define Package/$(PKG_NAME)/postinst
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+        ( . /etc/uci-defaults/$(PKG_NAME) && rm -f /etc/uci-defaults/$(PKG_NAME)
+}
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

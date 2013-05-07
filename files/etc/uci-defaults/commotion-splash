@@ -1,0 +1,7 @@
+#!/bin/sh
+
+[ -f "/usr/share/commotion/files/splash.html" ] && { \
+mv -f /usr/share/commotion/files/splash.html /etc/nodogsplash/htdocs/splash.html
+}
+
+exit 0
