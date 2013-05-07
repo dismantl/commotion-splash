@@ -40,7 +40,11 @@ endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
-	$(CP) $(PKG_BUILD_DIR)/luci/* $(1)/usr/lib/lua/luci/ || true
+	$(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
+	$(INSTALL_DIR) $(1)/etc/nodogsplash/htdocs
+	$(CP) $(PKG_BUILD_DIR)/htdocs/nodogsplash/splash.html $(1)/etc/nodogsplash/htdocs/
+	$(INSTALL_DIR) $(1)/www/luci-static/commotion
+	$(CP) $(PKG_BUILD_DIR)/htdocs/commotion/* $(1)/www/luci-static/commotion/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
