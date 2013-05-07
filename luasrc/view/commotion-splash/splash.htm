@@ -1,0 +1,26 @@
+<%+header%>
+
+<%+commotion-splash/splashtext%>
+
+<% require "luci.http"
+   local authtarget=luci.http.formvalue("authtarget")
+   local server, splash, redir, tok = authtarget:match("(http://[^:]+)([:%d]*/.*)(redir=.*)&(tok=.*)")
+   local newredir = server .. controller
+   newredir = newredir:gsub(":","#3A"):gsub("/","#2F"):gsub("#","%%")
+%>
+
+<div style="width:49%;display:inline-block;text-align:center" id="local">
+ <a href="<%=server .. splash .. 'redir=' .. newredir .. '%2Fapps&' .. tok%>">
+  <img src="<%=media%>/apps.128.png" alt="Local Applications" title="Local Applications" />
+  <p>Local Applications</p>
+ </a>
+</div>
+
+<div style="width:49%;display:inline-block;text-align:center" id="internet">
+ <a href="<% require "luci.http" %><%= luci.http.formvalue("authtarget") %>">
+  <img src="<%=media%>/internet.128.png" alt="Internet" title="Internet" />
+  <p>Internet</p>
+ </a>
+</div>
+
+<%+footer%>

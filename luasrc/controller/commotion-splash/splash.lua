@@ -10,6 +10,7 @@ function index()
 	entry({"admin", "services", "splash"}, call("config_splash"), _("Captive Portal"), 90).dependent=true
 	entry({"admin", "services", "splash", "splashtext" }, form("commotion-splash/splashtext"), _("Splashtext"), 10).dependent=true
 	entry({"admin", "services", "splash", "submit" }, call("config_submit")).dependent=true
+	entry({"commotion","splash"}, template("commotion-splash/splash"))
 end
 
 function config_splash(error_info, bad_settings)
@@ -53,7 +54,7 @@ function config_splash(error_info, bad_settings)
     
   end
   
-  luci.template.render("commotion-splash/splash", {splash=splash, err=error_info})
+  luci.template.render("commotion-splash/splash_settings", {splash=splash, err=error_info})
 end
 
 function config_submit()
@@ -152,8 +153,8 @@ MaxClients 100
 ClientIdleTimeout ${leasetime}
 ClientForceTimeout ${leasetime}
 
-BlockedMACList ${blacklist}
-TrustedMACList ${whitelist}
+${blacklist}
+${whitelist}
 ]]
 
     local gw_iface = "GatewayInterface ${iface}"
@@ -177,6 +178,7 @@ TrustedMACList ${whitelist}
         options.whitelist = options.whitelist .. mac
       end
     end
+    if options.whitelist ~= '' then options.whitelist = "TrustedMACList " .. options.whitelist end
     
     first = true; for _, mac in pairs(settings.blacklist) do
       if mac and mac ~= '' then
@@ -184,11 +186,13 @@ TrustedMACList ${whitelist}
         options.blacklist = options.blacklist .. mac
       end
     end
+    if options.blacklist ~= '' then options.blacklist = "BlockedMACList " .. options.blacklist end
     
     local new_conf = printf(new_conf_tmpl, options)
     if not nixio.fs.writefile("/etc/nodogsplash/nodogsplash.conf",new_conf) then
-      log("splash: failed to write nodogsplash.conf")
+      DIE("splash: failed to write nodogsplash.conf")
     end
+    luci.sys.exec("/etc/init.d/nodogsplash stop; sleep 5; /etc/init.d/nodogsplash start")
     
     luci.http.redirect(".")
   end
