@@ -25,13 +25,38 @@ table.cbi-section-table input, table.cbi-section-table textarea, table.cbi-secti
 	    </div>
 	  </div>
 	</div>
+	<div class="cbi-value" id="cbi-commotion-splash-general-redirect">
+	  <label class="cbi-value-title" for="cbid.commotion-splash.redirect">Redirect to Homepage?</label>
+	  <div class="cbi-value-field">
+	    <input type="checkbox" class="cbi-input-text" name="cbid.commotion-splash.redirect" id="cbid.commotion-splash.redirect" value="1" <% if splash.redirect == 1 then %>checked<% end %>/><br />
+	    <div class="cbi-value-description">
+	      <span class="cbi-value-helpicon"><img src="/luci-static/resources/cbi/help.gif" alt="help" /></span>
+		If this is checked, clients will be redirected to your homepage, instead of to their original request.
+	    </div>
+	  </div>
+	</div>
+	<div class="cbi-value" id="cbi-commotion-splash-general-redirecturl">
+	  <label class="cbi-value-title" for="cbid.commotion-splash.redirecturl">Homepage</label>
+	  <div class="cbi-value-field">
+	    <input type="text" class="cbi-input-text" name="cbid.commotion-splash.redirecturl" id="cbid.commotion-splash.redirecturl" value="<%=splash.redirecturl%>" /><br />
+	    <div class="cbi-value-description">
+	      <span class="cbi-value-helpicon"><img src="/luci-static/resources/cbi/help.gif" alt="help" /></span>
+		After authentication, clients will be redirected to this URL instead of to their original request.
+	    </div>
+	  </div>
+	</div>
+	<div class="cbi-value" id="cbi-commotion-splash-general-autoauth">
+	  <label class="cbi-value-title" for="cbid.commotion-splash.autoauth">Immediately Authenticate?</label>
+	  <div class="cbi-value-field">
+	    <input type="checkbox" class="cbi-input-text" name="cbid.commotion-splash.autoauth" id="cbid.commotion-splash.autoauth" value="1" <% if splash.autoauth == 1 then %>checked<% end %>/><br />
+	    <div class="cbi-value-description">
+	      <span class="cbi-value-helpicon"><img src="/luci-static/resources/cbi/help.gif" alt="help" /></span>
+		If this is checked, clients will be immediately directed to their original request or your homepage (if set above), instead of being served a splash page.
+	    </div>
+	  </div>
+	</div>
       </div>
     </fieldset>
-    
-    
-    
-    <!-- !!!!!!!!!!!!  after-authentication page, redirect to original request or to another custom page? !!!!!!!! -->
-    
     
 <!-- /nsection -->
 <!-- tblsection -->

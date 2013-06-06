@@ -20,7 +20,7 @@ function config_splash(error_info, bad_settings)
   if bad_settings then
     splash = bad_settings
   else
-    local current_ifaces = luci.sys.exec("grep 'GatewayInterface' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    local current_ifaces = luci.sys.exec("grep '^GatewayInterface' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
     local list = list_ifaces()
     splash = {zones={}, selected_zones={}, whitelist={}, blacklist={}, ipaddrs={}}
     
@@ -32,23 +32,34 @@ function config_splash(error_info, bad_settings)
       end
     end
   
+    -- get redirect
+    splash.redirecturl = html_encode(luci.sys.exec("grep -o -E '^RedirectURL .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2"):sub(0,-2))
+    splash.redirect = splash.redirecturl ~= '' and 1 or 0
+    
+    -- get autoauth
+    local auth = luci.sys.exec("grep -o -E '^AuthenticateImmediately .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2"):sub(0,-2)
+    splash.autoauth = (auth == "yes" or auth == "true" or auth == "1") and 1 or 0
+    
     -- get splash.leasetime
-    splash.leasetime = luci.sys.exec("grep -o -E 'ClientIdleTimeout [[:digit:]]+' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    splash.leasetime = html_encode(luci.sys.exec("grep -o -E '^ClientIdleTimeout [[:digit:]]+' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2"):sub(0,-2))
   
     -- get whitelist, blacklist, ipaddrs
-    local whitelist_str = luci.sys.exec("grep -o -E 'TrustedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    local whitelist_str = luci.sys.exec("grep -o -E '^TrustedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
     for mac in whitelist_str:gmatch("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") do
+      mac = html_encode(mac)
       table.insert(splash.whitelist,mac)
     end
     
-    local blacklist_str = luci.sys.exec("grep -o -E 'BlockedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
+    local blacklist_str = luci.sys.exec("grep -o -E '^BlockedMACList .*' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 2")
     for mac in blacklist_str:gmatch("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") do
+      mac = html_encode(mac)
       table.insert(splash.blacklist,mac)
     end
     
-    local ipaddrs_str = luci.sys.exec("grep -o -E 'FirewallRule allow from .* #FirewallRule preauthenticated-users' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 4")
+    local ipaddrs_str = luci.sys.exec("grep -o -E '^[^#]*FirewallRule allow from .* #FirewallRule preauthenticated-users' /etc/nodogsplash/nodogsplash.conf |cut -d ' ' -f 4")
     for ipaddr in ipaddrs_str:gmatch("[^%s]+") do
       log(ipaddr)
+      ipaddr = html_encode(ipaddr)
       table.insert(splash.ipaddrs,ipaddr)
     end
     
@@ -61,7 +72,10 @@ function config_submit()
   local error_info = {}
   local list = list_ifaces()
   local settings = {
-    leasetime = luci.http.formvalue("cbid.commotion-splash.leasetime")
+    leasetime = luci.http.formvalue("cbid.commotion-splash.leasetime"),
+    redirect = luci.http.formvalue("cbid.commotion-splash.redirect"),
+    redirecturl = luci.http.formvalue("cbid.commotion-splash.redirecturl"),
+    autoauth = luci.http.formvalue("cbid.commotion-splash.autoauth"),
   }
   local range
 
@@ -79,6 +93,20 @@ function config_submit()
   --input validation and sanitization
   if (not settings.leasetime or settings.leasetime == '' or not is_uint(settings.leasetime)) then
     error_info.leasetime = "Clearance time must be an integer greater than zero"
+  end
+  
+  if settings.redirect and settings.redirect ~= "1" then
+    DIE("Invalid redirect")
+    return
+  end
+  
+  if settings.redirecturl and settings.redirecturl ~= '' then
+    settings.redirecturl = url_encode(settings.redirecturl)
+  end
+  
+  if settings.autoauth and settings.autoauth ~= "1" then
+    DIE("Invalid autoauth")
+    return
   end
   
   for _, selected_zone in pairs(settings.selected_zones) do
@@ -123,7 +151,8 @@ function config_submit()
     local options = {
       gw_ifaces = '',
       ipaddrs = '',
-      redirect = settings.redirect and ("RedirectURL " .. settings.redirect) or "",
+      redirect = settings.redirect and settings.redirecturl and ("RedirectURL " .. settings.redirecturl) or "",
+      autoauth = settings.autoauth and "AuthenticateImmediately yes" or "",
       leasetime = settings.leasetime,
       blacklist = '',
       whitelist = ''
@@ -149,6 +178,7 @@ EmptyRuleSetPolicy users-to-router allow
 
 GatewayName Commotion
 ${redirect}
+${autoauth}
 MaxClients 100
 ClientIdleTimeout ${leasetime}
 ClientForceTimeout ${leasetime}
